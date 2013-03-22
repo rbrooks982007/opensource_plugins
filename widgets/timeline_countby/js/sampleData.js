@@ -1,10 +1,9 @@
 
 TLSampleDataContainer =  function(){
-    var keyToEntries = d3.map()
-    ,   keyset = []
-    ,   timeEntries = []
-    ,   extent = {}
-    ,   pageSize = 10;
+	var keyToEntries = d3.map()
+    ,keyset = []
+	,timeEntries = []
+    ,pageSize = 10;
 
     var collapseIntervals = function(values){
 
@@ -51,10 +50,10 @@ TLSampleDataContainer =  function(){
         for(var i=0; i < entryCount; i++){
              
             var  month = randomNumber(2, 3)
-            ,   day  = randomNumber(0,3)
-            ,   hour = randomNumber(0, 23)
-            ,   minutes = randomNumber(0, 59)
-            ,   seconds = randomNumber(0, 59);
+            ,day  = randomNumber(0,3)
+            ,hour = randomNumber(0, 23)
+            ,minutes = randomNumber(0, 59)
+            ,seconds = randomNumber(0, 59);
      
             var start = new Date(2013, month, day, hour, minutes, seconds);
             var offsetHoursInMillis = randomNumber(0, 12) * 3600000;

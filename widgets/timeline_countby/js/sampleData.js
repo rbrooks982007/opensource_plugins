@@ -57,7 +57,7 @@ TLSampleDataContainer =  function(){
      
             var start = new Date(2013, month, day, hour, minutes, seconds);
             var offsetHoursInMillis = randomNumber(0, 12) * 3600000;
-            var offsetDayOfWeekInMillis = randomNumber(0, 1) * 86400000;
+            var offsetDayOfWeekInMillis = randomNumber(0, 6) * 86400000;
             var endInMillis = start.getTime() + offsetHoursInMillis + offsetDayOfWeekInMillis;
             var end = new Date(endInMillis);
 

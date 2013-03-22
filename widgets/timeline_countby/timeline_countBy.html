@@ -295,13 +295,13 @@
 
             if(max-min <= CONSTANTS.TIME.WEEKS.SCALE_FACTOR){
                 var totalDays = d3.round((max - min)/86400000);
-                var scale = Math.ceil(totalDays/4);
+                var scale = Math.ceil(totalDays/14);
                 return d3.time.days(start, end, scale);
             }
             
             if(max-min <= CONSTANTS.TIME.MONTHS.SCALE_FACTOR){
                 var totalWeeks = d3.round((max-min)/86400000 *7);
-                var scale = Math.ceil(totalWeeks/8);
+                var scale = Math.ceil(totalWeeks/12);
                 return d3.time.weeks(start, end);
             }
 
@@ -374,8 +374,8 @@
     var CONSTANTS = {
         TIME: {
             HOURS: {NAME:"hours", FORMAT:'%x', SCALE_FACTOR: 86400000 * 2},
-            DAYS : {NAME:"days", FORMAT:'%d', SCALE_FACTOR: 86400000 * 5},
-            WEEKS : {NAME:"weeks", format:'%b - Week %U of %y', SCALE_FACTOR: 86400000 * 24},
+            DAYS : {NAME:"days", FORMAT:'%d', SCALE_FACTOR: 86400000 * 7},
+            WEEKS : {NAME:"weeks", format:'%b - Week %U of %y', SCALE_FACTOR: 86400000 * 28},
             MONTHS : {NAME:"months", FORMAT:'%b %Y', SCALE_FACTOR: 86400000 * 365},
             YEARS: {NAME: "years", FORMAT:'%y', SCALE_FACTOR: 86400000 * 365* 10}
         }

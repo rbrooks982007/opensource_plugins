@@ -107,13 +107,13 @@
     var tl = {
             times : data.timeEntries,
             timeScale : function(intervals){
-                var start = d3.min(intervals, function(d){return d.start;})
-                ,   end = d3.max(intervals, function(d){return d.end;})
+                var start = d3.min(intervals)
+                ,   end = d3.max(intervals)
                 ,   min = start.getTime()
                 ,   max = end.getTime();
 
                 if(max-min <=  CONSTANTS.TIME.HOURS.SCALE_FACTOR){
-                    return [d3.time.day.floor(start), d3.time.day.floor(end)]; 
+                    return [d3.time.day.floor(start), d3.time.day.ceil(end)]; 
                 }
             
                 if(max-min <= CONSTANTS.TIME.DAYS.SCALE_FACTOR){
@@ -192,19 +192,19 @@
 				,   max = end.getTime();
 
 				if(max-min <= CONSTANTS.TIME.HOURS.SCALE_FACTOR){
-					return d3.time.days(start, end);
+					return d3.time.days( d3.time.day.floor(start), end);
 				}
 				
 				if(max-min <= CONSTANTS.TIME.DAYS.SCALE_FACTOR){
-					return d3.time.weeks(start, end);
+					return d3.time.weeks(d3.time.day.floor(start), end);
 				}
 
 				if(max-min <= CONSTANTS.TIME.WEEKS.SCALE_FACTOR){
-					return d3.time.months(start, end);
+					return d3.time.months(d3.time.week.floor(start), end);
 				}
 
 				if(max-min <= CONSTANTS.TIME.MONTHS.SCALE_FACTOR){
-					return d3.time.years(start, end);
+					return d3.time.years(d3.time.month.floor(start), end);
 				}
 
 				return [];
@@ -243,18 +243,18 @@
             ,   max = end.getTime();
 
             if(max-min <= CONSTANTS.TIME.HOURS.SCALE_FACTOR){
-                return [d3.time.day.floor(start), d3.time.day.ceil(end)];
+                return [d3.time.hour.floor(start), d3.time.hour.ceil(end)];
             }
 
             if(max-min <= CONSTANTS.TIME.DAYS.SCALE_FACTOR){
-              return [d3.time.week.floor(start), d3.time.week.ceil(end)];
+              return [d3.time.day.floor(start), d3.time.day.ceil(end)];
             }
 
             if(max-min <= CONSTANTS.TIME.WEEKS.SCALE_FACTOR){
-                return [d3.time.month.floor(start), d3.time.month.ceil(end)];
+                return [d3.time.week.floor(start), d3.time.week.ceil(end)];
             }
 
-            return [d3.time.year.floor(start), d3.time.year.ceil(end)];
+            return [d3.time.month.floor(start), d3.time.month.ceil(end)];
         },
         initKeys: function(domain){
             var start = d3.min(domain)
@@ -283,7 +283,7 @@
 
             if(max-min <= CONSTANTS.TIME.HOURS.SCALE_FACTOR){
                 totalMinutes = d3.round((max-min)/60000);
-                var scale = Math.ceil(totalMinutes/9);
+                var scale = Math.ceil(totalMinutes/12);
                 return d3.time.minutes(start, end, scale);
             }
 
@@ -325,7 +325,7 @@
             }
 
             if(max-min <= CONSTANTS.TIME.MONTHS.SCALE_FACTOR){
-                return d3.time.format('week %U');
+                return d3.time.format('week-%U')(d);
             }
 
             return d3.time.format('%b %y')(d)
@@ -374,8 +374,8 @@
     var CONSTANTS = {
         TIME: {
             HOURS: {NAME:"hours", FORMAT:'%x', SCALE_FACTOR: 86400000 * 2},
-            DAYS : {NAME:"days", FORMAT:'%d', SCALE_FACTOR: 86400000 * 7},
-            WEEKS : {NAME:"weeks", format:'%b - Week %U of %y', SCALE_FACTOR: 86400000 * 31},
+            DAYS : {NAME:"days", FORMAT:'%d', SCALE_FACTOR: 86400000 * 5},
+            WEEKS : {NAME:"weeks", format:'%b - Week %U of %y', SCALE_FACTOR: 86400000 * 24},
             MONTHS : {NAME:"months", FORMAT:'%b %Y', SCALE_FACTOR: 86400000 * 365},
             YEARS: {NAME: "years", FORMAT:'%y', SCALE_FACTOR: 86400000 * 365* 10}
         }
@@ -389,13 +389,13 @@
     tl.height = keys.length * 12 + 15;
     lc.height = height - tl.height - 50;
     
-    var ext = d3.extent(tl.times);
-    tl.xScale = d3.time.scale().domain(ext)
-    .range([0, width]);
+    var ext = tl.timeScale(d3.extent(tl.times));
+    tl.xScale = d3.time.scale().domain(ext).range([0, width]);
     tl.yScale = d3.scale.linear().domain([0, keys.length]).range([0, tl.height]);
     
-    lc.initKeys(ext);
-    lc.xScale = d3.time.scale().domain(ext).range([0, width]);
+	var ext2 = lc.timeScale(tl.xScale.domain());
+    lc.xScale = d3.time.scale().domain(ext2).range([0, width]);
+	lc.initKeys(ext2);
     lc.yScale = d3.scale.linear().domain([0, d3.max(lc.y)]).range([lc.height, 0]);
 
     var main = d3.select('#mainWrapper')

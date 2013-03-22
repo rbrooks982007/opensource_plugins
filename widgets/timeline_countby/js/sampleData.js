@@ -57,12 +57,13 @@ TLSampleDataContainer =  function(){
      
             var start = new Date(2013, month, day, hour, minutes, seconds);
             var offsetHoursInMillis = randomNumber(0, 12) * 3600000;
-            var offsetDayOfWeekInMillis = randomNumber(0, 0) * 86400000;
+            var offsetDayOfWeekInMillis = randomNumber(0, 1) * 86400000;
             var endInMillis = start.getTime() + offsetHoursInMillis + offsetDayOfWeekInMillis;
             var end = new Date(endInMillis);
 
             var stepDays = (endInMillis - start.getTime())/3600000 > 24;
-            var times = stepDays ? d3.time.days(start, end) : d3.time.hours(start, end);
+            var times = stepDays ? d3.time.days(d3.time.day.floor(start), d3.time.day.ceil(end))
+									: d3.time.hours(d3.time.hour.floor(start), d3.time.hour.ceil(end));
             var entries = [];
             var id = "value" + i;
             for(var t=0; t < times.length; t++){

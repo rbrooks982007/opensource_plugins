@@ -1,0 +1,592 @@
+<!doctype Html>
+<html>
+<head>
+  <title>Timeline count by tool</title>
+  <script type="text/javascript" src="http://mbostock.github.com/d3/d3.v2.js"></script>
+  <script type="text/javascript" src="js/sampleData.js"></script>
+  <style>
+    .chart {
+         shape-rendering: crispEdges;
+     }
+
+    .data path {
+        stroke: #000;
+        fill: none;
+        stroke-width: 1px;
+    }
+	
+	.data.linechart path{
+		stroke-width: 2px;
+	}
+
+    .data.value0 path {
+        stroke: red;  
+    }
+   
+    .data.value1 path { 
+        stroke: purple;
+    }
+
+    .data.value2 path {
+        stroke: orange;
+    }
+
+    .data.value3 path {
+        stroke: blue;
+    }
+
+     .data.value4 path {
+        stroke: brown;
+    }
+
+     .data.value5 path { 
+        stroke: black;
+    }
+    
+    .data.value6 path {
+        stroke: yellow;
+    }
+
+    .data.value7 path {
+        stroke: green;
+    }
+
+    .data.value8 path {
+        stroke: magenta;
+    }
+
+    .data.value9 path {
+        stroke: grey;
+    }  
+
+    .mini text {
+         font: 9px sans-serif;   
+     }
+	 
+     .linechart text {
+        font: 9px sans-serif;
+     }
+
+    .month text {
+        text-anchor: start;
+    }
+
+    .y.axis.linechart line, .y.axis.linechart path{
+        fill:none;
+    }
+	
+    .y.axis.timeline line, .y.axis.timeline path{
+        fill:none;
+    }
+	
+    .axis line, .axis path {
+        stroke: black
+     }
+	 
+	.gridline{
+		stroke: lightgrey;
+		opacity: 0.5;
+	}
+
+	 
+	.interval {
+		stroke-width: 6px;
+		fill: lightgreen;
+	}
+
+    .time-entry {
+        stroke: green;
+        fill: lightgreen;
+     } 
+
+    .brush .extent{
+        stroke: gray;
+        fill: blue;
+        fill-opacity: .165;
+    }
+
+  </style>
+</head>
+<body>
+  <div id="mainWrapper">
+  </div>
+  <script type="text/javascript">
+
+	var data = new TLSampleDataContainer()
+    ,   keyToEntries = data.keyToEntries
+    ,   keys = data.keyset
+    ,   pageSize = data.pageSize;
+
+    // Visual attributes 
+    var tl = {
+            times : data.timeEntries,		
+			xTicks : function(start, end){
+			    var min = start.getTime()
+				,   max = end.getTime()
+				,   range;
+                
+                if(max-min <= CONSTANTS.TIME.HOURS.SCALE_FACTOR){
+                    var totalHours = d3.round((max-min)/3600000);
+                    var scale = Math.ceil(totalHours/12);
+                    return d3.time.hours(start, end, scale);
+                }
+
+				if(max-min <= CONSTANTS.TIME.DAYS.SCALE_FACTOR){
+                    var totalDays = d3.round((max-min)/86400000);
+                    var scale = Math.ceil(totalDays/7);
+					range = d3.time.days(start, end, scale);
+					return range;
+				}
+				
+                if(max-min <= CONSTANTS.TIME.WEEKS.SCALE_FACTOR){
+                    var totalWeeks = d3.round((max-min)/(86400000 * 7));
+                    var scale = Math.ceil(totalWeeks/4);
+					range = d3.time.weeks(start, end, scale);
+					return range;
+
+				}
+
+				if(max-min <= CONSTANTS.TIME.MONTHS.SCALE_FACTOR){
+					range = d3.time.months(start, end);
+					return range;
+				}
+
+				return d3.time.years(start,end);
+			},
+			
+			xTicksFormat : function(d) {
+				var start = tl.xScale.domain()[0]
+				,   end = tl.xScale.domain()[1]
+				,	max = end.getTime()
+				,	min = start.getTime();
+
+				if(max-min <= CONSTANTS.TIME.HOURS.SCALE_FACTOR) { 
+					return d3.time.format('%I %p')(d);
+				}
+
+				if(max-min <= CONSTANTS.TIME.DAYS.SCALE_FACTOR) {
+					return d3.time.format('%d')(d);
+				}
+
+				if(max-min <= CONSTANTS.TIME.WEEKS.SCALE_FACTOR){
+					return d3.time.format('%a -week %U')(d)
+				}
+
+				if(max - min <= CONSTANTS.TIME.MONTHS.SCALE_FACTOR){
+					return d3.time.format('%b')(d)
+				}
+
+				return d3.time.format('%Y')(d)			
+			},
+			
+			x1Ticks: function(start, end){
+				var min = start.getTime()
+				,   max = end.getTime();
+
+				if(max-min <= CONSTANTS.TIME.HOURS.SCALE_FACTOR){
+					return d3.time.days( d3.time.day.floor(start), end);
+				}
+				
+				if(max-min <= CONSTANTS.TIME.DAYS.SCALE_FACTOR){
+					return d3.time.weeks(d3.time.day.floor(start), end);
+				}
+
+				if(max-min <= CONSTANTS.TIME.WEEKS.SCALE_FACTOR){
+					return d3.time.months(d3.time.week.floor(start), end);
+				}
+
+				if(max-min <= CONSTANTS.TIME.MONTHS.SCALE_FACTOR){
+					return d3.time.years(d3.time.month.floor(start), end);
+				}
+
+				return [];
+			},
+			
+			x1TicksFormat: function(d){
+				var start = tl.xScale.domain()[0]
+				,   end = tl.xScale.domain()[1]
+				, 	max = end.getTime()
+				, 	min = start.getTime();
+
+				if(max-min <= CONSTANTS.TIME.HOURS.SCALE_FACTOR){ 
+					return d3.time.format('%a, %b %d %Y - week %U')(d);
+				}
+
+				if(max-min <= CONSTANTS.TIME.DAYS.SCALE_FACTOR){
+					return d3.time.format('%a, %b %Y - week %U')(d);
+				}
+
+				if(max-min <= CONSTANTS.TIME.WEEKS.SCALE_FACTOR){
+					return d3.time.format('%b %Y')(d)
+				}
+
+				return d3.time.format('%Y')(d);
+			},
+			
+			drawLines: function(){
+				keyToEntries.forEach(function(key, values){
+					var line = d3.svg.line()
+					.x(function(d){
+						return tl.xScale(d.time);    
+						})
+					.y(function(d){
+						return tl.yScale(d.value);
+						})
+					.interpolate("basis");
+
+					tl.chart.append('g').attr('class', 'data ' + key)
+                    .append("path")
+                    .attr("d", line(values));
+				});
+			},
+				
+			//Handle Brush Event 
+			onBrush: function(){
+				var bext = brush.empty() ? ext2 : brush.extent();
+				lc.xScale.domain(bext);
+				lc.initKeys(bext);
+			//	lc.yScale = d3.scale.linear().domain([0, d3.max(lc.y)]);
+			//	lc.xAxis.ticks(lc.xTicks(bext[0], bext[1])).tickFormat(lc.xTicksFormat(bext[0], bext[1]));
+			//	lc.chart.select('.y.axis.linechart').call(lc.yAxis)
+				lc.chart.select('.axis.timescale').call(lc.xAxis);
+				lc.drawLines();
+
+			} 
+			
+        };
+
+    var lc = {
+        timeScale : function(extent){
+            var start = d3.min(extent)
+            ,   end = d3.max(extent)
+            ,   min = start.getTime()
+            ,   max = end.getTime();
+
+            if(max-min <= CONSTANTS.TIME.HOURS.SCALE_FACTOR){
+                return [d3.time.hour.floor(start), d3.time.hour.ceil(end)];
+            }
+
+            if(max-min <= CONSTANTS.TIME.DAYS.SCALE_FACTOR){
+              return [d3.time.day.floor(start), d3.time.day.ceil(end)];
+            }
+
+            if(max-min <= CONSTANTS.TIME.WEEKS.SCALE_FACTOR){
+                return [d3.time.week.floor(start), d3.time.week.ceil(end)];
+            }
+
+            return [d3.time.month.floor(start), d3.time.month.ceil(end)];
+        },
+        initKeys: function(domain){
+            var start = d3.min(domain)
+            ,   end = d3.max(domain)
+            ,   min = start.getTime()
+            ,   max = end.getTime();
+            
+            lc.idsToSelectedIntervals = d3.map();
+            lc.y = [];
+            keyToEntries.forEach(function(key, values){
+                var selectedIntervals = []
+                for(var i=0; i < values.length; i++){
+                    var entry = values[i];
+                    if(entry.time.getTime() >= min && entry.time.getTime() <= max){
+                        lc.y.push(entry.value);
+                        selectedIntervals.push(entry);
+                        lc.idsToSelectedIntervals.set(entry.id, selectedIntervals);
+                    }
+                }    
+            });
+        },
+		
+		xTicks: function(start, end){
+			var min = start.getTime()
+            ,   max = end.getTime();
+
+			if(max-min <= CONSTANTS.TIME.MINUTES.SCALE_FACTOR){
+                totalSeconds = d3.round((max-min)/1000);
+                var scale = Math.ceil(totalSeconds/10);
+                return [start, end]/d3.time.seconds(start, end, totalSeconds);
+            }
+
+			
+            if(max-min <= CONSTANTS.TIME.HOURS.SCALE_FACTOR){
+                totalMinutes = d3.round((max-min)/60000);
+                var scale = Math.ceil(totalMinutes/10);
+                return  [start, end] //d3.time.minutes(start, end, totalMinutes);
+            }
+
+            if(max-min <= CONSTANTS.TIME.DAYS.SCALE_FACTOR){
+                var totalHours = d3.round((max-min)/(3600000));
+                var scale = Math.ceil(totalHours/10);
+                return d3.time.hours(start, end, scale);
+            }
+
+            if(max-min <= CONSTANTS.TIME.WEEKS.SCALE_FACTOR){
+                var totalDays = d3.round((max - min)/86400000);
+                var scale = Math.ceil(totalDays/12);
+                return d3.time.days(start, end, scale);
+            }
+            
+            if(max-min <= CONSTANTS.TIME.MONTHS.SCALE_FACTOR){
+                var totalWeeks = d3.round((max-min)/86400000 *7);
+                var scale = Math.ceil(totalWeeks/8);
+                return d3.time.weeks(start, end);
+            }
+
+            return d3.time.months(start,end, 12);
+		},
+		
+		xTicksFormat: function(d){
+			var min = d3.min(lc.xScale.domain())
+            ,   max = d3.max(lc.xScale.domain());
+
+            if(max-min <= CONSTANTS.TIME.HOURS.SCALE_FACTOR){ 
+                return d3.time.format('%m')(d);
+            }
+
+            if(max-min <= CONSTANTS.TIME.DAYS.SCALE_FACTOR){
+                return d3.time.format('%I %p')(d);
+            }
+
+            if(max-min <= CONSTANTS.TIME.WEEKS.SCALE_FACTOR){
+                return d3.time.format('%d')(d);
+            }
+
+            if(max-min <= CONSTANTS.TIME.MONTHS.SCALE_FACTOR){
+                return d3.time.format('week-%U')(d);
+            }
+
+            return d3.time.format('%b %y')(d)
+        },
+
+        drawLines: function(){
+			var entryset = lc.idsToSelectedIntervals.entries();
+			var g = lc.chart.selectAll('g.data')
+				.data(entryset, function(d){return d.key;})
+				.each(function(d, i){
+					 d3.select(this)
+					.select('path')
+					.datum(d.value)
+					.attr('d', lc.line);
+				 });
+				
+			g.enter().append('g')
+				.attr('class', function(d){return "data linechart " + d.key;})
+				.append('path')
+				.each(function(d, i){
+					 d3.select(this)
+					.datum(d.value)
+					.attr('d', lc.line);
+				});
+				
+			g.exit().remove();
+        },
+		
+			
+		drawGrid: function(){
+			//draw the Gridlines for line chart
+			lc.chart.append('g').selectAll('.gridline')
+				.remove()
+				.data(lc.chart.selectAll('.axis.timescale line.tick')[0])
+				.enter().append('line')
+				.attr('x1', function(d,i){return d.parentNode.transform.baseVal.getItem(0).matrix.e;})
+				.attr('x2', function(d,i){return d.parentNode.transform.baseVal.getItem(0).matrix.e;}) 
+				.attr('y1', 0)
+				.attr('y2', lc.height)
+				.attr('class', 'gridline');
+				
+			lc.chart.append('g').selectAll('.gridline')
+				.remove()
+				.data(lc.chart.selectAll('.y.axis.linechart g > line.tick')[0])
+				.enter().append('line')
+				.attr('y1', function(d,i){return d.parentNode.transform.baseVal.getItem(0).matrix.f;})
+				.attr('y2', function(d,i){return d.parentNode.transform.baseVal.getItem(0).matrix.f;}) 
+				.attr('x1', 0)
+				.attr('x2', width)
+				.attr('class', 'gridline');
+		
+		},
+		
+		line: d3.svg.line()
+                .x(function(d){
+                    return lc.xScale(d.time);    
+                    })
+                .y(function(d){
+                    return lc.yScale(d.value);
+                    })
+				.interpolate("basis")
+
+
+    };
+
+    var  drawIntervals = function(mmap, x, y){
+        var i = 0;
+        var offset = .5 * y(1) + 0.5;
+        mmap.forEach(function(key, values){
+                var line = d3.svg.line()
+                .x(function(d){
+                    return x(d.time);    
+                    })
+                .y(function(d){
+                    return y(i) + offset;
+                    });
+
+                tl.chart.append('g').attr('class', "interval data " + key)
+                    .append("path")
+                    .attr("d", line(values));
+                    
+                i++;
+        });
+    }
+
+
+    var CONSTANTS = {
+        TIME: {
+            MINUTES: {NAME:"minutes", FORMAT:'%x', SCALE_FACTOR: 3600000 * 1},
+            HOURS: {NAME:"hours", FORMAT:'%x', SCALE_FACTOR: 86400000 * 1},
+            DAYS : {NAME:"days", FORMAT:'%d', SCALE_FACTOR: 86400000 * 5},
+            WEEKS : {NAME:"weeks", format:'%b - Week %U of %y', SCALE_FACTOR: 86400000 * 28},
+            MONTHS : {NAME:"months", FORMAT:'%b %Y', SCALE_FACTOR: 86400000 * 365},
+            YEARS: {NAME: "years", FORMAT:'%y', SCALE_FACTOR: 86400000 * 365* 10}
+        }
+    }
+
+
+    var margin = {top:20, right:15, bottom:15, left:60}
+    ,   width = 500 - margin.left - margin.right
+    ,   height = 325 - margin.top - margin.bottom;
+    
+    tl.height = 30;
+    lc.height = height - tl.height - 50;
+    
+    var ext = d3.extent(tl.times);
+    tl.xScale = d3.time.scale().domain(ext).range([0, width]);
+	var ext2 = tl.xScale.domain();
+    lc.xScale = d3.time.scale().domain(ext2).range([0, width]);
+	lc.initKeys(ext2);
+	
+    lc.yScale = d3.scale.linear().domain([0, d3.max(lc.y)]).range([lc.height, 0]);
+	tl.yScale = d3.scale.linear().domain([0, d3.max(lc.y)]).range([tl.height, 0]);
+
+    var main = d3.select('#mainWrapper')
+            .append('svg:svg')
+            .attr('width', width +  margin.right + margin.left)
+            .attr('height', height + margin.top + margin.bottom)
+            .attr('class', 'chart');
+
+    main.append('defs').append('clipPath')
+            .attr('id','clip')
+            .append('rect')
+                .attr('width', width + 100)
+                .attr('height', lc.height);
+
+    lc.chart = main.append('g')
+                    .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
+                    .attr('width', width)
+                    .attr('height', lc.height)
+                    .attr('class', 'linechart');					
+		
+	
+
+    tl.chart = main.append('g')
+            .attr('transform', 'translate('+ margin.left + ',' + (lc.height + 60) + ')')
+            .attr('width', width)
+            .attr('height', tl.height)
+            .attr('class', 'mini');
+
+    //var draw Timeline xaxis
+    tl.xAxis = d3.svg.axis()
+        .scale(tl.xScale)
+        .orient('bottom')
+        .ticks(tl.xTicks)
+        .tickFormat(tl.xTicksFormat)
+        .tickSize(6, 0, 0);
+
+    tl.x1Axis =  d3.svg.axis()
+        .scale(tl.xScale)
+        .orient('top')
+        .ticks(tl.x1Ticks)
+        .tickFormat(tl.x1TicksFormat)
+        .tickSize(15, 0, 0);
+
+    lc.xAxis = d3.svg.axis()
+        .scale(lc.xScale)
+        .orient('bottom')
+        .ticks(lc.xTicks)
+        .tickFormat(lc.xTicksFormat)
+        .tickSize(6,0,0);
+
+    lc.yAxis = d3.svg.axis()
+        .scale(lc.yScale)
+        .orient('left')
+        .tickSubdivide(true)
+		.tickSize(6,0,0);
+		
+	tl.yAxis = d3.svg.axis()
+        .scale(tl.yScale)
+        .orient('left')
+		.tickValues([tl.yScale.domain()[0], tl.yScale.domain()[1]])
+		.tickSize(6,0,6);
+
+    lc.chart.append('g')
+        .attr('transform', 'translate(-15, 0)')
+        .attr('class', 'y axis linechart')
+        .call(lc.yAxis);
+
+    lc.chart.append('g')
+        .attr('transform', 'translate(0,' + lc.height + ')')
+        .attr('class', 'axis timescale')
+        .call(lc.xAxis);
+
+
+    tl.chart.append('g')
+        .attr('transform', 'translate(0,' + tl.height + ')')
+        .attr('class', 'axis date')
+        .call(tl.xAxis);
+	
+    tl.chart.append('g')
+        .attr('transform', 'translate(0,0.5)')
+        .attr('class', 'axis month')
+        .call(tl.x1Axis)
+        .selectAll('text')
+            .attr('dx', 5)
+            .attr('dy', 12);
+	
+	tl.chart.append('g')
+		.attr('transform', 'translate(-15, 0)')
+		.attr('class', 'y axis timeline')
+		.call(tl.yAxis);
+
+    //Draw Grids
+	lc.drawGrid();
+
+	//Invisible hit areas to move around the selection window 
+    tl.chart.append('rect')
+        .attr('pointer-events', 'painted')
+        .attr('width', width)
+        .attr('height', tl.height)
+        .attr('visibility', "hidden")
+		.attr('cursor', 'crosshair');
+
+	//Initialize brush to handle events
+    var brush = d3.svg.brush()
+		.x(tl.xScale)
+		.extent(tl.xScale.domain())
+		.on("brush", tl.onBrush);
+
+	tl.chart.append('g')
+		.attr('class', 'x brush')
+		.call(brush)
+		.selectAll('rect')
+			.attr('y', 1)
+			.attr('height', tl.height - 1);
+
+    tl.chart.selectAll('rect.background').remove();
+    
+    // draw the path for each key on the line chart.
+    lc.drawLines();	
+    tl.drawLines();	
+
+
+</script>	
+</body>  
+</html>
